@@ -1,24 +1,33 @@
-# CLAUDE.md
+@AGENTS.md
 
-Frontend de uma engine de animação (vídeo agora, jogo depois). Ler `docs/ARCHITECTURE.md` antes de mudar estrutura.
+# Notas específicas do Claude Code
 
-## Comandos
+## Hooks ativos (`.claude/settings.json`)
 
-- `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm build` — todos devem passar antes de commit.
-- E2E local: navegadores do Playwright não baixam nesta máquina; E2E roda no CI.
+| Evento                     | Script                | Efeito                                                                                                          |
+| -------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| SessionStart               | `session-context.mjs` | Injeta branch, tasks `[~]` e status do último check.                                                            |
+| UserPromptSubmit           | `inject-state.mjs`    | Se o check do fim do turno anterior falhou, injeta os erros — **corrija-os primeiro**.                          |
+| PreToolUse Edit/Write      | `guard-edit.mjs`      | Bloqueia lockfile/dist/.env, `.only`, `@ts-ignore`, disable sem motivo, disable de boundaries, baixar coverage. |
+| PreToolUse Bash/PowerShell | `guard-bash.mjs`      | Bloqueia force push, push na main, `--no-verify`, `rm -rf` fora de pastas geradas.                              |
+| PostToolUse Edit/Write     | `post-edit.mjs`       | Prettier + ESLint no arquivo; erros voltam para você na hora. Lembra de teste irmão faltando.                   |
+| Stop                       | `stop-check.mjs`      | Se `src/` mudou: typecheck + testes relacionados + check:tests. Só avisa (não bloqueia).                        |
 
-## Regras de camada (enforced por `eslint-plugin-boundaries`)
+As regras ficam em `.claude/hooks/lib/rules.mjs` e são testadas em `rules.test.mjs`. Para mudar uma regra, mude o teste primeiro. Um bloqueio do guardrail é informação: corrija a abordagem, não tente contornar.
 
-- `src/domain`: TS puro, **nenhum** pacote npm (nem zod, react, pixi, anime).
-- `src/application`: domain + ports/use cases. Tipos expostos à UI em `AppContainer.ts`.
-- `src/engine`: runtime compartilhado vídeo/jogo (clock, loop, modos).
-- `src/infrastructure`: adapters (anime, pixi, dexie, opfs, mediabunny).
-- `src/presentation`: React; nunca importa infrastructure nem `src/main`.
-- `src/main`: composition root + entry; único lugar que conhece todas as camadas.
-- Import entre camadas via alias `@/`.
+## Skills (`.claude/skills/`)
 
-## Convenções
+- `/task <ID>`: executa uma task do roadmap de ponta a ponta (branch → TDD → verify → revisão → commit).
+- `/new-entity`, `/new-usecase`, `/new-port-adapter`: scaffolding com teste no padrão da camada.
+- `/adr <título>`: registra uma decisão arquitetural.
+- `/verify`: roda o gate completo e resume as falhas.
 
-- Clips de animação são JSON próprio no domínio; anime.js só aparece em `infrastructure/animation`.
-- anime roda com `engine.useDefaultMainLoop = false`; Pixi com `autoStart: false`. Nosso loop dirige ambos (necessário para export determinístico).
-- Tasks: `docs/tasks/M*.md` (fonte) espelhadas em GitHub Issues (`#n` no fim da linha). Marcar `[x]` e fechar issue ao concluir.
+## Agents (`.claude/agents/`)
+
+- `test-auditor`: revisa a qualidade dos testes do diff. Rodar antes de todo commit de feature.
+- `architecture-reviewer`: revisa camadas, ports, determinismo e se precisa de ADR.
+
+## Ambiente local (Windows)
+
+- Os browsers do Playwright não baixam nesta máquina, então o E2E roda no CI. Localmente: `PW_CHANNEL=chrome|msedge pnpm e2e` se houver navegador instalado.
+- O pnpm 12 bloqueia build scripts; aprovações ficam em `pnpm-workspace.yaml` (`allowBuilds`).

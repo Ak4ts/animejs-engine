@@ -8,3 +8,14 @@
   - Aceite: `pnpm test` e `pnpm e2e` rodam com 1 teste exemplo cada.
 - [~] **E0-4** `ci` GitHub Actions: lint, typecheck, test, build em PR/push na main (#4)
 - [x] **E0-5** `docs` Estrutura de pastas das camadas + container DI + README + CLAUDE.md (#5)
+- [x] **E0-6** `ci` Infra de testes AI first: coverage por camada, fast-check, fakes/contracts, `check:tests` (#48)
+  - Aceite: `pnpm test:coverage` aplica os limites por camada; arquivo sem teste irmão falha em `check:tests`.
+  - Testes: unit do `check-test-pairs`; contract suite `Clock` rodando contra `FakeClock`.
+- [x] **E0-7** `ci` Guardrails de lint: strict type-checked, determinismo em domain/engine, eslint-comments, regras do vitest (#49)
+  - Aceite: `Math.random` em `src/domain`, `it.only` e disable sem motivo falham no lint.
+- [x] **E0-8** `ci` Claude Code: hooks (guard, post-edit, stop, contexto), skills e agents (#50)
+  - Aceite: hooks bloqueiam lockfile, `@ts-ignore`, redução de coverage, force push; lint volta para o modelo após cada edição.
+  - Testes: unit de todas as regras em `.claude/hooks/lib/rules.test.mjs`.
+- [x] **E0-9** `docs` Documentação AI first: `AGENTS.md`, `CLAUDE.md` por camada, `docs/TESTING.md`, ADRs 0001–0006 (#51)
+- [~] **E0-10** `ci` CI com `pnpm verify`, relatório de coverage e workflow de atualização de snapshots (#52)
+  - Aceite: jobs `check` e `e2e` verdes num PR.

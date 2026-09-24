@@ -1,4 +1,6 @@
+import comments from '@eslint-community/eslint-plugin-eslint-comments/configs'
 import js from '@eslint/js'
+import vitest from '@vitest/eslint-plugin'
 import boundaries from 'eslint-plugin-boundaries'
 import prettier from 'eslint-config-prettier'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -38,20 +40,88 @@ const layerPolicies = [
     from: { element: { type: 'main' } },
     allow: layer('domain', 'application', 'engine', 'infrastructure', 'presentation', 'main'),
   },
+  // Builders, fakes and contract suites implement ports and build domain objects.
+  {
+    from: { element: { type: 'test-support' } },
+    allow: layer('domain', 'application', 'engine', 'test-support'),
+  },
 ]
 
+// Domain and engine must be deterministic: time and randomness come from injected
+// Clock / Random ports so that `seek(t)` always yields the same frame (ADR-0004).
+const determinismMessage = 'Non-deterministic API. Inject the Clock/Random port instead (ADR-0004).'
+const determinismRules = {
+  'no-restricted-globals': [
+    'error',
+    ...['setTimeout', 'setInterval', 'requestAnimationFrame', 'performance'].map((name) => ({
+      name,
+      message: determinismMessage,
+    })),
+  ],
+  'no-restricted-properties': [
+    'error',
+    { object: 'Math', property: 'random', message: determinismMessage },
+    { object: 'Date', property: 'now', message: determinismMessage },
+  ],
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+      message: determinismMessage,
+    },
+  ],
+}
+
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results', '.remember']),
+  globalIgnores([
+    'dist',
+    'coverage',
+    'playwright-report',
+    'test-results',
+    '.remember',
+    '.claude/.state',
+  ]),
+
+  // Plain JS tooling: eslint config, scripts, Claude Code hooks.
+  {
+    files: ['**/*.{js,mjs}'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: globals.node },
+  },
+
+  // TypeScript: strict, type-aware rules. AI-written code gets no slack on types.
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
-      tseslint.configs.recommended,
+      tseslint.configs.strictTypeChecked,
+      tseslint.configs.stylisticTypeChecked,
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
-    languageOptions: { globals: globals.browser },
+    languageOptions: {
+      globals: globals.browser,
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    rules: {
+      '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+      // Small, focused files are easier to review and to fit in a model's context.
+      'max-lines': ['warn', { max: 300, skipBlankLines: true, skipComments: true }],
+      complexity: ['warn', 12],
+    },
   },
+
+  // Every eslint-disable must say why, and can never be blanket.
+  comments.recommended,
+  {
+    rules: {
+      '@eslint-community/eslint-comments/require-description': ['error', { ignore: [] }],
+      '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
+      '@eslint-community/eslint-comments/disable-enable-pair': 'error',
+    },
+  },
+
+  // Layer boundaries.
   {
     files: ['src/**/*.{ts,tsx}'],
     plugins: { boundaries },
@@ -85,8 +155,14 @@ export default defineConfig([
       ],
     },
   },
+
   {
-    // Tests may use test tooling (vitest, testing-library) and shared test support in any layer.
+    files: ['src/domain/**/*.{ts,tsx}', 'src/engine/**/*.{ts,tsx}'],
+    rules: determinismRules,
+  },
+
+  // Tests: any layer may use test tooling and src/test support.
+  {
     files: ['src/**/*.test.{ts,tsx}'],
     rules: {
       'boundaries/dependencies': [
@@ -103,5 +179,21 @@ export default defineConfig([
       ],
     },
   },
+  {
+    files: ['**/*.test.{ts,tsx,mjs}', 'e2e/**/*.ts'],
+    plugins: { vitest },
+    rules: {
+      ...vitest.configs.recommended.rules,
+      'vitest/no-focused-tests': 'error',
+      'vitest/no-disabled-tests': 'warn',
+      'vitest/valid-title': 'error',
+      'vitest/expect-expect': [
+        'error',
+        { assertFunctionNames: ['expect', 'expect*', 'fc.assert', '*.contract'] },
+      ],
+      'max-lines': 'off',
+    },
+  },
+
   prettier,
 ])

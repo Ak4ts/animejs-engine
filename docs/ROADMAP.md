@@ -5,6 +5,13 @@ Engine de animação web (anime.js v4 + PixiJS v8 + React 19) para produzir víd
 - Arquitetura: [ARCHITECTURE.md](./ARCHITECTURE.md)
 - Backend (projeto paralelo): [BACKEND.md](./BACKEND.md)
 - Tasks detalhadas: [`docs/tasks/`](./tasks)
+- Testes: [TESTING.md](./TESTING.md) · Decisões: [`docs/adr/`](./adr) · Guia de agentes: [`AGENTS.md`](../AGENTS.md)
+
+## Fluxo de uma task
+
+Entender (task + issue + CLAUDE.md da camada + ADRs) → branch `feat/<ID>-<slug>` → marcar `[~]` → TDD → `pnpm verify` → revisão (`test-auditor`, `architecture-reviewer`) → marcar `[x]` → commit com `Closes #n` → PR. No Claude Code: `/task <ID>`.
+
+**Definition of Done**: ver [`AGENTS.md`](../AGENTS.md#definition-of-done). Toda task tem uma linha `Testes:` com os tipos de teste esperados; task sem essa linha precisa ganhar uma antes de começar.
 
 ## Convenções de tracking
 
@@ -12,6 +19,7 @@ Engine de animação web (anime.js v4 + PixiJS v8 + React 19) para produzir víd
 - ID da task: `E<milestone>-<n>` (ex. `E2-4`). Backend: `B<n>`.
 - Labels: `domain`, `app`, `infra`, `engine`, `ui`, `backend`, `docs`, `ci`.
 - Status: `[ ]` pendente · `[~]` em andamento · `[x]` concluída. Ao fechar task, referenciar commit/PR.
+- Task nova: adicionar a linha no `docs/tasks/M*.md` (com `Aceite:` e `Testes:`) e rodar `pnpm tasks:sync` para criar a issue.
 
 ## Milestones
 
