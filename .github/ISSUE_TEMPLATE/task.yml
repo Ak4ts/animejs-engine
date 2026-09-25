@@ -1,0 +1,39 @@
+name: Task
+description: Nova task do roadmap (prefira adicionar em docs/tasks/M*.md e rodar `pnpm tasks:sync`)
+title: 'E?-? '
+body:
+  - type: input
+    id: id
+    attributes:
+      label: ID
+      description: 'Formato E<milestone>-<n>, ex. E2-9'
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Camada
+      multiple: true
+      options: [domain, app, engine, infra, ui, docs, ci]
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Objetivo
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      description: Verificáveis, idealmente como testes.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Testes esperados
+      description: 'Tipos por camada (docs/TESTING.md): unit, property, contract, componente, visual, E2E.'
+    validations:
+      required: true
