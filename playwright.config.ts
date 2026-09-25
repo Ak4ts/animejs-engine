@@ -22,7 +22,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm build && pnpm preview --host 127.0.0.1 --port 4173 --strictPort',
+    // Build runs before Playwright (see `e2e` script). Vite is started directly with node:
+    // pnpm 12 does not forward the stop signal to its child, which left CI hanging after tests.
+    command:
+      'node ./node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort',
     url: baseURL,
     reuseExistingServer: !isCI,
     timeout: 120_000,
